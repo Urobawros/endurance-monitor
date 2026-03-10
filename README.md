@@ -9,6 +9,7 @@ Monitorer 1 à 3 chevaux engagés en course d'endurance avec :
 - **Allure** détectée via accéléromètre du téléphone (FFT — pas / trot / amble / galop)
 - **Position GPS** + **vitesse** (GPS natif téléphone)
 - **Instructions coach → cavalière** (vibration + affichage plein écran)
+- **Carte parcours** : import GPX/KML/GeoJSON + superposition satellite, détection de déviation
 - **Offline-first** : buffering SQLite local, flush automatique quand réseau revient
 - **Analytics post-course** (courbes FC×vitesse, V200, zones d'effort, replay GPS)
 
@@ -86,10 +87,12 @@ Fenêtre glissante 3s @ 50Hz sur accéléromètre du téléphone (fixé guidon/p
 ### MVP (3 semaines)
 - [ ] App : BLE Polar H10 + GPS + SQLite buffer + WebSocket sync
 - [ ] Backend : WebSocket ingest (live + batch) + InfluxDB
-- [ ] PWA coach : carte live + FC/vitesse + statut online/offline + boutons instructions
+- [ ] PWA coach : carte satellite live + FC/vitesse + statut online/offline + boutons instructions
+- [ ] Import GPX/KML parcours + overlay carte + détection déviation (alerte > 150m)
 
 ### Phase 2 (+2 semaines)
 - [ ] Détection allure (FFT on-device)
+- [ ] Géoréférencement image scannée (fallback PDF organisation)
 - [ ] Analytics post-course : replay GPS, courbes FC×vitesse, V200
 - [ ] Export CSV / JSON
 
