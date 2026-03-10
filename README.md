@@ -10,6 +10,7 @@ Monitorer 1 à 3 chevaux engagés en course d'endurance avec :
 - **Position GPS** + **vitesse** (GPS natif téléphone)
 - **Instructions coach → cavalière** (vibration + affichage plein écran)
 - **Carte parcours** : import GPX/KML/GeoJSON + superposition satellite, détection de déviation
+- **Détection de boiterie** : ESP32 + IMU sur le licol, score de symétrie en continu (grade AAEP 0-5)
 - **Offline-first** : buffering SQLite local, flush automatique quand réseau revient
 - **Analytics post-course** (courbes FC×vitesse, V200, zones d'effort, replay GPS)
 
@@ -31,8 +32,9 @@ Polar H10 ──BLE──► App React Native ──SQLite──► Sync Manager
 |-----------|------|------|
 | **Polar H10** | Fréquence cardiaque BLE | ~90€ |
 | **Smartphone cavalière** (existant) | Hub : GPS + accéléro + BLE + 4G | — |
+| **ESP32-S3 + ICM-42688-P** *(optionnel)* | Détection boiterie (IMU sur licol) | ~30€ |
 
-**Coût total 3 chevaux : ~270€**
+**Coût total 3 chevaux : ~270€** (sans boiterie) / **~360€** (avec boiterie)
 
 ## Stack
 
