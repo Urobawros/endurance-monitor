@@ -1,143 +1,143 @@
-# Feature : Détection de boiterie (Lameness Detection)
+# Feature: Lameness Detection
 
-## Contexte clinique
+## Clinical context
 
-Les boiteries représentent la **1ère cause d'élimination** en endurance équestre (>50% des cas).
-Elles peuvent se développer progressivement au cours de la course, bien avant d'être visibles
-à l'œil nu lors des contrôles vétérinaires.
+Lameness is the **#1 cause of elimination** in equestrian endurance racing (>50% of cases).
+It can develop gradually over the course of a race, well before becoming visible
+to the naked eye during vet checks.
 
-Détecter une asymétrie émergente 20-40 km avant qu'elle ne devienne clinique permet :
-- D'adapter l'allure et la vitesse immédiatement
-- D'anticiper le passage au contrôle vétérinaire
-- D'éviter l'aggravation en lésion grave (tendon, os)
-
----
-
-## Qu'est-ce qu'un IMU ?
-
-**IMU = Inertial Measurement Unit** (centrale inertielle)
-
-Puce électronique mesurant le mouvement dans les 3 dimensions :
-
-| Capteur | Axes | Mesure |
-|---------|------|--------|
-| Accéléromètre | X, Y, Z | Accélérations linéaires (rebond, choc, vibration) |
-| Gyroscope | X, Y, Z | Vitesses de rotation (inclinaison, tangage, roulis) |
-| Magnétomètre* | X, Y, Z | Orientation / boussole |
-
-**6 axes** = accéléro + gyro (suffisant pour boiterie)
-**9 axes** = + magnéto (orientation absolue)
-
-> Le Lameness Locator commercial (~5000€) utilise exactement ce principe :
-> un IMU fixé sur la tête du cheval, algorithme de symétrie de mouvement.
-> Recréable avec un ESP32 + IMU pour ~30€.
+Detecting emerging asymmetry 20-40 km before it becomes clinical allows:
+- Immediately adapting gait and speed
+- Anticipating the upcoming vet check
+- Preventing escalation to serious injury (tendon, bone)
 
 ---
 
-## Principe de détection
+## What is an IMU?
 
-La boiterie se traduit par une **asymétrie de mouvement** :
+**IMU = Inertial Measurement Unit**
 
-**Membres antérieurs :**
-Le cheval lève la tête quand le membre douloureux touche le sol (signe de Gamb).
-→ Les pics verticaux alternent de façon asymétrique entre foulée gauche et droite.
+An electronic chip measuring motion in 3 dimensions:
 
-**Membres postérieurs :**
-Le bassin/croupe descend moins du côté douloureux.
-→ Asymétrie du signal vertical au niveau de la croupe.
+| Sensor | Axes | Measures |
+|--------|------|---------|
+| Accelerometer | X, Y, Z | Linear accelerations (bounce, impact, vibration) |
+| Gyroscope | X, Y, Z | Rotation rates (tilt, pitch, roll) |
+| Magnetometer* | X, Y, Z | Orientation / compass |
+
+**6 axes** = accelero + gyro (sufficient for lameness)
+**9 axes** = + magneto (absolute orientation)
+
+> The commercial Lameness Locator (~5000€) uses exactly this principle:
+> an IMU mounted on the horse's head, motion symmetry algorithm.
+> Replicable with an ESP32 + IMU for ~30€.
 
 ---
 
-## Architecture hardware
+## Detection principle
 
-Le capteur tête est le **même boîtier** que celui utilisé pour la détection d'allure.
-Un seul ESP32 + IMU sur le licol fait les deux : allure (FFT) + boiterie (symétrie).
+Lameness manifests as a **motion asymmetry**:
+
+**Forelimbs:**
+The horse raises its head when the painful limb contacts the ground (Gamb sign).
+→ Vertical peaks alternate asymmetrically between left and right stride.
+
+**Hindlimbs:**
+The pelvis/croup drops less on the painful side.
+→ Asymmetry of the vertical signal at croup level.
+
+---
+
+## Hardware architecture
+
+The head sensor is the **same enclosure** used for gait detection.
+A single ESP32 + IMU on the halter does both: gait (FFT) + lameness (symmetry).
 
 ```
 ┌─────────────────────────────────┐
-│  Capteur tête (licol / noseband)│
-│  ESP32-S3 mini                  │  → allure (FFT @ 50Hz)
-│  ICM-42688-P (IMU 6 axes)       │  → boiterie antérieure (symétrie @ 200Hz)
-│  LiPo 200mAh (~6h autonomie)    │
-│  BLE → smartphone cavalière     │
-│  (dans la poche)                │
+│  Head sensor (halter / noseband)│
+│  ESP32-S3 mini                  │  → gait (FFT @ 50Hz)
+│  ICM-42688-P (6-axis IMU)       │  → forelimb lameness (symmetry @ 200Hz)
+│  LiPo 200mAh (~6h battery life) │
+│  BLE → rider smartphone         │
+│  (in pocket)                    │
 └─────────────────────────────────┘
 
 ┌─────────────────────────────────┐
-│  Capteur croupe (tapis de selle)│
-│  ESP32-S3 mini                  │  → détection postérieure (optionnel, Phase 3)
+│  Croup sensor (saddle pad)      │
+│  ESP32-S3 mini                  │  → hindlimb detection (optional, Phase 3)
 │  ICM-42688-P                    │
-│  BLE → smartphone cavalière     │
+│  BLE → rider smartphone         │
 └─────────────────────────────────┘
 
-Boîtier : impression 3D (Creality K2 Pro), fixation velcro + clip
+Enclosure: 3D printed (Creality K2 Pro), velcro + clip mounting
 ```
 
-### Pourquoi ICM-42688-P plutôt que MPU-6050 ?
+### Why ICM-42688-P instead of MPU-6050?
 
 | Spec | MPU-6050 | ICM-42688-P |
 |------|----------|-------------|
-| Bruit accéléro | 400 μg/√Hz | **70 μg/√Hz** |
-| Fréquence max | 1 kHz | **32 kHz** |
-| Prix | ~3€ | ~8€ |
+| Accelero noise | 400 μg/√Hz | **70 μg/√Hz** |
+| Max frequency | 1 kHz | **32 kHz** |
+| Price | ~3€ | ~8€ |
 
-Pour la boiterie, la résolution du signal vertical est critique (asymétries de quelques mm).
-Le MPU-6050 génère trop de bruit pour détecter les grades 1-2 fiablement.
+For lameness, vertical signal resolution is critical (asymmetries of a few mm).
+The MPU-6050 generates too much noise to reliably detect grades 1-2.
 
-### Coût par cheval
+### Cost per horse
 
-| Composant | Prix |
-|-----------|------|
+| Component | Price |
+|-----------|-------|
 | ESP32-S3 mini | ~15€ |
 | ICM-42688-P | ~8€ |
 | LiPo 200mAh | ~5€ |
-| Boîtier 3D | ~2€ |
+| 3D enclosure | ~2€ |
 | **Total** | **~30€** |
 
 ---
 
-## Algorithme
+## Algorithm
 
 ```
-Acquisition : accéléromètre vertical (axe Z) @ 200 Hz
+Acquisition: vertical accelerometer (Z axis) @ 200 Hz
 
-Fenêtre : 10 secondes glissantes (2000 échantillons)
+Window: 10-second sliding (2000 samples)
 
-Étape 1 — Filtrage
-  - Filtre passe-bas 15 Hz (supprime vibrations sol/terrain)
-  - Soustraction moyenne (supprime gravité)
+Step 1 — Filtering
+  - Low-pass filter 15 Hz (removes ground/terrain vibrations)
+  - Mean subtraction (removes gravity)
 
-Étape 2 — Détection des phases d'appui (stance phases)
-  - Peak detection sur signal filtré
-  - Alternance gauche / droite via comptage de foulées
+Step 2 — Stance phase detection
+  - Peak detection on filtered signal
+  - Left / right alternation via stride counting
 
-Étape 3 — Calcul asymétrie (méthode Equinosis)
-  MinDiff = mean(min_gauche) - mean(min_droite)   → asymétrie appui
-  MaxDiff = mean(max_droite) - mean(max_gauche)   → asymétrie soulèvement
+Step 3 — Asymmetry calculation (Equinosis method)
+  MinDiff = mean(min_left) - mean(min_right)    → stance asymmetry
+  MaxDiff = mean(max_right) - mean(max_left)    → lift asymmetry
 
-Étape 4 — Score grade AAEP (0-5)
-  |MinDiff| ou |MaxDiff| (mm) → grade :
-    < 3 mm  → 0 (symétrique)
-    3-6 mm  → 1 (très légère)
-    6-12 mm → 2 (légère, visible au trot)
-    12-20mm → 3 (modérée)
-    > 20 mm → 4-5 (sévère)
+Step 4 — AAEP grade score (0-5)
+  |MinDiff| or |MaxDiff| (mm) → grade:
+    < 3 mm  → 0 (symmetric)
+    3-6 mm  → 1 (very mild)
+    6-12 mm → 2 (mild, visible at trot)
+    12-20mm → 3 (moderate)
+    > 20 mm → 4-5 (severe)
 
-Étape 5 — Tendance (10 dernières minutes)
-  Régression linéaire du score → pente positive = aggravation
+Step 5 — Trend (last 10 minutes)
+  Linear regression of score → positive slope = worsening
 ```
 
-### Limites algorithmiques
+### Algorithmic limitations
 
-- Grade 1 : difficile sans calibration individuelle (bruit > signal)
-- Terrain très accidenté : vibrations parasites → filtre adaptatif nécessaire
-- Galop : asymétrie normale → désactiver alerte en phase galop
+- Grade 1: difficult without individual calibration (noise > signal)
+- Very rough terrain: parasitic vibrations → adaptive filter required
+- Canter: normal asymmetry → disable alert during canter phase
 
 ---
 
-## Intégration dans le système
+## System integration
 
-### Données transmises par BLE (ESP32 → téléphone)
+### Data transmitted via BLE (ESP32 → phone)
 
 ```json
 {
@@ -153,53 +153,53 @@ Fenêtre : 10 secondes glissantes (2000 échantillons)
 }
 ```
 
-`limb` : FL_left / FL_right (forelimb) | HL_left / HL_right (hindlimb)
-`trend` : stable / increasing / decreasing
+`limb`: FL_left / FL_right (forelimb) | HL_left / HL_right (hindlimb)
+`trend`: stable / increasing / decreasing
 
-### Affichage dashboard coach
+### Coach dashboard display
 
 ```
 Aramis   🟢 LIVE
 ❤️ 142 bpm   ⚡ 18.4 km/h   🐴 Trot
-📍 Sur le tracé (+18m)
-🦵 Symétrie 96%  ✅
+📍 On route (+18m)
+🦵 Symmetry 96%  ✅
 
 ──────────────────────────────
 
 Kahina   🟢 LIVE
 ❤️ 136 bpm   ⚡ 17.2 km/h   🐴 Trot
-📍 Sur le tracé (+5m)
-🦵 ⚠️  Ant. gauche — Grade 2/5, tendance ↗
+📍 On route (+5m)
+🦵 ⚠️  Left fore — Grade 2/5, trend ↗
 ```
 
-### Niveaux d'alerte
+### Alert levels
 
-| Grade | Couleur | Action suggérée |
-|-------|---------|----------------|
-| 0-1 | 🟢 vert | RAS |
-| 2 | 🟡 orange | Instruction "Passe au pas, observe" |
-| 3 | 🔴 rouge | Vibration cavalière + "Stop au prochain contrôle" |
-| 4-5 | 🔴🔴 critique | Vibration + "Arrêt immédiat" |
-
----
-
-## Perspective : validation clinique
-
-Ce système produit un **score de symétrie continu** sur toute la course, alors que le contrôle
-vétérinaire n'évalue qu'un instant ponctuel tous les 20-40 km.
-
-Données exploitables pour une étude :
-- Corrélation score IMU ↔ résultat contrôle vétérinaire (grade AAEP)
-- Temps d'anticipation : combien de km avant l'élimination le score augmentait déjà ?
-- Seuil optimal de décision (sensibilité/spécificité)
-
-Sujet de thèse vétérinaire ou publication équine potentielle (EnvA / Pratique Vétérinaire Equine).
+| Grade | Colour | Suggested action |
+|-------|--------|-----------------|
+| 0-1 | 🟢 green | All clear |
+| 2 | 🟡 orange | Instruction "Drop to walk, observe" |
+| 3 | 🔴 red | Rider vibration + "Stop at next vet check" |
+| 4-5 | 🔴🔴 critical | Vibration + "Immediate stop" |
 
 ---
 
-## Références
+## Perspective: clinical validation
+
+This system produces a **continuous symmetry score** throughout the entire race, whereas the
+vet check only evaluates a single point in time every 20-40 km.
+
+Data usable for a study:
+- Correlation IMU score ↔ vet check result (AAEP grade)
+- Anticipation time: how many km before elimination was the score already rising?
+- Optimal decision threshold (sensitivity/specificity)
+
+Potential subject for a veterinary thesis or equine publication (EnvA / Pratique Vétérinaire Equine).
+
+---
+
+## References
 
 - Equinosis Lameness Locator — [equinosis.com](https://equinosis.com)
 - Paulussen et al. (2017). *Inertial sensor-based lameness detection.* Equine Vet J.
 - Bragança et al. (2017). *Head-mounted IMU for objective lameness assessment.* Vet J.
-- Rallet N. (2023). Thèse EnvA — objets connectés cheval d'endurance.
+- Rallet N. (2023). EnvA thesis — connected devices for endurance horses.

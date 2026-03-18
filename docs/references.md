@@ -1,31 +1,31 @@
-# Références & Littérature
+# References & Literature
 
-## Thèses et publications scientifiques
+## Theses and scientific publications
 
-- Rallet N. (2023). *Utilisation d'objets connectés pour le suivi en course des chevaux d'endurance : étude exploratoire.* Thèse de doctorat vétérinaire, EnvA / Faculté de Médecine de Créteil (UPEC). [dumas-04303626](https://dumas.ccsd.cnrs.fr/dumas-04303626v1) — PDF dans `../endurance/`
-- Robert C. (2023). Protocole de pose capteur FreeStyle Libre 2 chez le cheval. *Pratique Vétérinaire Equine*, n°216.
+- Rallet N. (2023). *Utilisation d'objets connectés pour le suivi en course des chevaux d'endurance : étude exploratoire.* Doctoral thesis in veterinary medicine, EnvA / Faculté de Médecine de Créteil (UPEC). [dumas-04303626](https://dumas.ccsd.cnrs.fr/dumas-04303626v1) — PDF in `../endurance/`
+- Robert C. (2023). FreeStyle Libre 2 sensor placement protocol in horses. *Pratique Vétérinaire Equine*, n°216.
 
-## Paramètres physiologiques endurance (valeurs de référence)
+## Endurance physiological parameters (reference values)
 
-| Paramètre | Valeur de référence | Note |
-|-----------|--------------------|-|
-| FC repos | 28–44 bpm | |
-| FC effort modéré | 80–120 bpm | |
-| FC effort intense | 140–200 bpm | |
-| V200 (vitesse à FC=200) | ~6–8 m/s | indicateur forme |
-| FC récupération (véto) | < 64 bpm | condition d'homologation |
-| Hypoglycémie course | après 80–100 km | données Rallet 2023 |
+| Parameter | Reference value | Note |
+|-----------|----------------|------|
+| Resting HR | 28–44 bpm | |
+| Moderate effort HR | 80–120 bpm | |
+| High effort HR | 140–200 bpm | |
+| V200 (speed at HR=200) | ~6–8 m/s | fitness indicator |
+| Recovery HR (vet check) | < 64 bpm | homologation condition |
+| Race hypoglycaemia | after 80–100 km | Rallet 2023 data |
 
-## Matériel de référence
+## Reference equipment
 
-- **Polar Equine Heart Rate Monitor for Riding** : capteur FC conçu pour le cheval, sangle thoracique adaptée morphologie équine, BLE standard (HRM Profile), compatible app custom. [polar.com/fr/horse-heart-rate-sensors](https://www.polar.com/fr/horse-heart-rate-sensors)
-- **Polar H10** (humain) : émetteur thoracique, BLE + ANT+, 1000 Hz ECG, waterproof IP68 — utilisable sur cheval avec sangle rallongée mais non idéal
-- **Biothermo ND** (MSD Animal Health) : puce d'identification avec capteur thermique percutané
-- **FreeStyle Libre 2** (Abbott) : capteur CGM glucose interstitiel, pose au cou (Robert 2023)
-- **Arioneo Equimetre 2.0** : GPS + FC + allure, 4G, dashboard coach (nov. 2024)
-- **WAOOK** (Equi-Test) : FC + GPS multi-chevaux, iPad coach, utilisé par EnvA
+- **Polar Equine Heart Rate Monitor for Riding**: HR sensor designed for horses, chest strap adapted to equine morphology, standard BLE (HRM Profile), compatible with custom apps. [polar.com/fr/horse-heart-rate-sensors](https://www.polar.com/fr/horse-heart-rate-sensors)
+- **Polar H10** (human): chest transmitter, BLE + ANT+, 1000 Hz ECG, waterproof IP68 — usable on horses with extended strap but not ideal
+- **Biothermo ND** (MSD Animal Health): identification chip with percutaneous thermal sensor
+- **FreeStyle Libre 2** (Abbott): interstitial CGM glucose sensor, neck placement (Robert 2023)
+- **Arioneo Equimetre 2.0**: GPS + HR + gait, 4G, coach dashboard (Nov. 2024)
+- **WAOOK** (Equi-Test): HR + GPS multi-horse, iPad coach, used by EnvA
 
-## Projets open source pertinents
+## Relevant open-source projects
 
-- [openmha](https://github.com/HörTech/openMHA) — traitement signal audio/capteurs
-- [heartpy](https://github.com/paulvangentcom/heartrate_analysis_python) — analyse FC Python
+- [openmha](https://github.com/HörTech/openMHA) — audio/sensor signal processing
+- [heartpy](https://github.com/paulvangentcom/heartrate_analysis_python) — Python HR analysis

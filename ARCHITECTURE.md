@@ -1,44 +1,44 @@
-# Architecture détaillée
+# Detailed Architecture
 
-## Principes fondamentaux
+## Core principles
 
-1. **Offline-first** : l'app cavalière écrit TOUJOURS en local d'abord. La connexion réseau est opportuniste.
-2. **Store & Forward** : les données accumulées hors couverture sont transmises dès que le réseau revient.
-3. **Coach = PWA** : interface web (iPad/navigateur), pas d'app store.
+1. **Offline-first**: the rider app ALWAYS writes locally first. Network connectivity is opportunistic.
+2. **Store & Forward**: data accumulated without coverage is transmitted as soon as the network returns.
+3. **Coach = PWA**: web interface (iPad/browser), no app store required.
 
 ---
 
-## Flux de données
+## Data flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         CHEVAL (×1 à 3)                                 │
+│                         HORSE (×1 to 3)                                 │
 │   Polar Equine ── BLE HRM Profile ────►                                 │
-│   ESP32-S3 + IMU (licol) ── BLE Custom ──►                             │
-│     • FFT → allure (pas/trot/amble/galop)                              │
-│     • Symétrie → boiterie (grade AAEP)                                 │
+│   ESP32-S3 + IMU (halter) ── BLE Custom ──►                            │
+│     • FFT → gait (walk/trot/pace/canter)                               │
+│     • Symmetry → lameness (AAEP grade)                                 │
 └────────────────────────────────────────────────┬────────────────────────┘
                                                  │ BLE ×2
                                                  ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    SMARTPHONE CAVALIÈRE                                  │
-│                    (dans la poche — pas de fixation requise)            │
+│                    RIDER SMARTPHONE                                      │
+│                    (in pocket — no mounting required)                   │
 │                                                                         │
 │   ┌──────────────────────────────────────────────────────────────────┐  │
-│   │  Collecte (toujours actif)                                       │  │
-│   │  BLE → FC (Polar Equine) + allure/boiterie (ESP32) │ GPS → pos+vit │  │
+│   │  Collection (always active)                                      │  │
+│   │  BLE → HR (Polar Equine) + gait/lameness (ESP32) │ GPS → pos+speed │  │
 │   │                        │                                         │  │
 │   │                        ▼                                         │  │
 │   │            ┌─────────────────────┐                               │  │
-│   │            │   SQLite local      │  ← écriture systématique      │  │
-│   │            │   (buffer offline)  │     ~200 bytes/point/1Hz      │  │
-│   │            └─────────┬───────────┘     ~720 KB/heure/cheval      │  │
+│   │            │   Local SQLite      │  ← systematic write           │  │
+│   │            │   (offline buffer)  │     ~200 bytes/point/1Hz      │  │
+│   │            └─────────┬───────────┘     ~720 KB/hour/horse        │  │
 │   │                      │                                           │  │
 │   │            Sync Manager (background)                             │  │
 │   │            ┌─────────▼───────────┐                               │  │
-│   │            │  Réseau disponible? │                               │  │
+│   │            │  Network available? │                               │  │
 │   │            └──────┬──────┬───────┘                               │  │
-│   │                   │ OUI  │ NON                                   │  │
+│   │                   │ YES  │ NO                                    │  │
 │   │                   ▼      ▼                                       │  │
 │   │           WebSocket  Continue                                    │  │
 │   │           stream     buffering                                   │  │
@@ -47,23 +47,23 @@
 │   │           buffer                                                 │  │
 │   └──────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
-│   ◄── Instruction coach (push notification → vibration)                 │
-│       Cavalière sort le téléphone pour lire le détail si besoin         │
+│   ◄── Coach instruction (push notification → vibration)                 │
+│       Rider takes out phone to read detail if needed                    │
 └─────────────────────────────────────────────┬───────────────────────────┘
-                                              │ 4G (quand dispo)
+                                              │ 4G (when available)
                                               │ Live stream + batch flush
                                               ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         BACKEND (Node.js / VPS)                         │
 │                                                                         │
 │   WebSocket Server                                                      │
-│   ├── /horse/:id     ← messages live + batches offline                  │
-│   └── /coach         ← dashboard (lecture + envoi instructions)         │
+│   ├── /horse/:id     ← live messages + offline batches                  │
+│   └── /coach         ← dashboard (read + send instructions)             │
 │                                                                         │
 │   Ingest                                                                │
-│   ├── Message live  → INSERT InfluxDB                                   │
-│   └── Batch flush   → INSERT InfluxDB (avec timestamps originaux)       │
-│                       → ACK avec dernier seq_id reçu                    │
+│   ├── Live message  → INSERT InfluxDB                                   │
+│   └── Batch flush   → INSERT InfluxDB (with original timestamps)        │
+│                       → ACK with last received seq_id                   │
 │                                                                         │
 │   InfluxDB (time series)                                                │
 │   └── measurement: telemetry                                            │
@@ -71,47 +71,47 @@
 │       fields: fc, speed_kmh, allure, lat, lon, gait_confidence          │
 │                                                                         │
 │   REST API                                                              │
-│   ├── GET  /races                     → liste des courses               │
-│   ├── GET  /races/:id/data            → export complet post-course      │
-│   ├── GET  /races/:id/data?horse=x    → données par cheval              │
-│   └── POST /instructions/:horse_id   → envoyer instruction              │
+│   ├── GET  /races                     → list of races                   │
+│   ├── GET  /races/:id/data            → full post-race export           │
+│   ├── GET  /races/:id/data?horse=x    → data per horse                  │
+│   └── POST /instructions/:horse_id   → send instruction                 │
 │                                                                         │
 └─────────────────────────────────────────────┬───────────────────────────┘
                                               │ WebSocket
                                               ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│              DASHBOARD COACH — PWA (iPad Safari / navigateur)           │
+│              COACH DASHBOARD — PWA (iPad Safari / browser)              │
 │                                                                         │
 │   ┌─────────────────────────┐  ┌──────────────────────────────────────┐ │
-│   │     Carte Mapbox GL     │  │  Cheval 1 — Aramis      🟢 LIVE     │ │
-│   │  🟢 Position live       │  │  ❤️  142 bpm  ⚡ 18.4 km/h  🐴 Trot  │ │
-│   │  🟡 Dernière pos. connue│  │  [⬆ Accélérer] [⬇ Ralentir]        │ │
-│   │     (hors couverture)   │  │  [→ Allure]   [⚑ Contrôle vét.]    │ │
-│   │  Tracé GPS complet      │  ├──────────────────────────────────────┤ │
-│   │    (live + replay buff) │  │  Cheval 2 — Kahina       🟡 OFFLINE │ │
+│   │     Mapbox GL Map       │  │  Horse 1 — Aramis       🟢 LIVE     │ │
+│   │  🟢 Live position       │  │  ❤️  142 bpm  ⚡ 18.4 km/h  🐴 Trot  │ │
+│   │  🟡 Last known pos.     │  │  [⬆ Speed up] [⬇ Slow down]        │ │
+│   │     (out of coverage)   │  │  [→ Gait]     [⚑ Vet check]        │ │
+│   │  Full GPS track         │  ├──────────────────────────────────────┤ │
+│   │    (live + buff replay) │  │  Horse 2 — Kahina        🟡 OFFLINE │ │
 │   └─────────────────────────┘  │  ❤️  128 bpm  ⚡ —  🐴 —            │ │
-│                                │  Dernière MAJ : il y a 4 min 32s    │ │
+│                                │  Last update: 4 min 32s ago         │ │
 │                                └──────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Store & Forward — Détail technique
+## Store & Forward — Technical detail
 
-### Sur le téléphone (app React Native)
+### On the phone (React Native app)
 
 ```
-Collecte → SQLite (TOUJOURS) → Sync Manager → Backend
+Collection → SQLite (ALWAYS) → Sync Manager → Backend
 ```
 
-**Table SQLite `telemetry` :**
+**SQLite `telemetry` table:**
 ```sql
 CREATE TABLE telemetry (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   horse_id   TEXT NOT NULL,
   race_id    TEXT NOT NULL,
-  ts         INTEGER NOT NULL,  -- Unix ms (timestamp original)
+  ts         INTEGER NOT NULL,  -- Unix ms (original timestamp)
   fc         INTEGER,
   lat        REAL,
   lon        REAL,
@@ -119,73 +119,73 @@ CREATE TABLE telemetry (
   heading    REAL,
   gait       TEXT,
   gait_conf  REAL,
-  synced     INTEGER DEFAULT 0  -- 0 = en attente, 1 = confirmé backend
+  synced     INTEGER DEFAULT 0  -- 0 = pending, 1 = backend confirmed
 );
 ```
 
-**Sync Manager (background task) :**
+**Sync Manager (background task):**
 ```
-Toutes les 5 secondes :
-  1. Vérifier connectivité réseau
-  2. Si connecté :
-     a. Ouvrir/maintenir WebSocket
+Every 5 seconds:
+  1. Check network connectivity
+  2. If connected:
+     a. Open/maintain WebSocket
      b. SELECT * FROM telemetry WHERE synced = 0 ORDER BY ts LIMIT 200
-     c. Envoyer batch JSON [{...}, {...}]
-     d. Attendre ACK backend (seq_id)
+     c. Send JSON batch [{...}, {...}]
+     d. Wait for backend ACK (seq_id)
      e. UPDATE telemetry SET synced = 1 WHERE id <= seq_id
-  3. Si déconnecté :
-     a. Fermer WebSocket
-     b. Continuer écriture SQLite
-     c. Log "offline depuis X secondes"
+  3. If disconnected:
+     a. Close WebSocket
+     b. Continue writing to SQLite
+     c. Log "offline for X seconds"
 ```
 
-**Capacité buffer :**
-- 1 point/seconde × ~200 bytes = 720 KB/heure/cheval
-- Un smartphone avec 1 GB libre peut stocker ~1400 heures
-- En pratique : purge des données synced après 7 jours
+**Buffer capacity:**
+- 1 point/second × ~200 bytes = 720 KB/hour/horse
+- A smartphone with 1 GB free can store ~1400 hours
+- In practice: purge synced data after 7 days
 
-### Sur le backend
+### On the backend
 
 ```javascript
-// Ingest unifié : live point ou batch offline
+// Unified ingest: live point or offline batch
 ws.on('message', (raw) => {
   const msg = JSON.parse(raw);
   
   if (msg.type === 'point') {
-    // Point live temps réel
+    // Real-time live point
     influx.writePoint(msg);
     broadcast('coach', { type: 'update', horse: msg.horse_id, data: msg });
   }
   
   if (msg.type === 'batch') {
-    // Flush buffer offline (timestamps passés)
+    // Offline buffer flush (past timestamps)
     influx.writeBatch(msg.points);
-    // Broadcaster la mise à jour au dashboard coach
+    // Broadcast the update to the coach dashboard
     broadcast('coach', { type: 'replay', horse: msg.horse_id, points: msg.points });
-    // ACK → téléphone peut marquer synced = 1
+    // ACK → phone can mark synced = 1
     ws.send(JSON.stringify({ type: 'ack', last_id: msg.last_id }));
   }
 });
 ```
 
-### Sur le dashboard coach (PWA)
+### On the coach dashboard (PWA)
 
-**Comportement cheval offline :**
-- Marqueur carte → icône 🟡 + tooltip "Hors couverture depuis Xm Xs"
-- Dernier FC + vitesse connus affichés en grisé
-- Tracé GPS interrompu avec ligne pointillée
-- Quand données arrivent (flush) → tracé complété rétroactivement + animation "sync"
+**Offline horse behaviour:**
+- Map marker → 🟡 icon + tooltip "Out of coverage for Xm Xs"
+- Last known HR + speed displayed greyed out
+- GPS track interrupted with dashed line
+- When data arrives (flush) → track completed retroactively + "sync" animation
 
-**Indicateur global :**
+**Global indicator:**
 ```
 [ 🟢 Aramis — LIVE ]  [ 🟡 Kahina — Offline 4m32s ]  [ 🟢 Elvire — LIVE ]
 ```
 
 ---
 
-## Format messages WebSocket
+## WebSocket message format
 
-### Point live (téléphone → backend)
+### Live point (phone → backend)
 ```json
 {
   "type": "point",
@@ -203,7 +203,7 @@ ws.on('message', (raw) => {
 }
 ```
 
-### Batch flush (téléphone → backend, après offline)
+### Batch flush (phone → backend, after offline)
 ```json
 {
   "type": "batch",
@@ -218,12 +218,12 @@ ws.on('message', (raw) => {
 }
 ```
 
-### Instruction (backend → téléphone)
+### Instruction (backend → phone)
 ```json
 {
   "type": "instruction",
   "code": "slow_down",
-  "message": "Ralentis — FC trop haute",
+  "message": "Slow down — HR too high",
   "vibration": [300, 200, 300],
   "ts": 1741478450000
 }
@@ -231,70 +231,70 @@ ws.on('message', (raw) => {
 
 ---
 
-## Algorithme détection d'allure (ESP32)
+## Gait detection algorithm (ESP32)
 
-Exécuté **sur l'ESP32 du licol** (IMU ICM-42688-P). Le mouvement de la tête du cheval
-est un signal plus propre et plus fiable que le pommeau de selle — c'est le même
-principe utilisé par les systèmes professionnels (Equimetre, Lameness Locator).
+Executed **on the halter ESP32** (IMU ICM-42688-P). The horse's head movement
+is a cleaner and more reliable signal than the saddle pommel — this is the same
+principle used by professional systems (Equimetre, Lameness Locator).
 
 ```
-Buffer : 150 échantillons accéléro @ 50 Hz = fenêtre 3 secondes
+Buffer: 150 accelerometer samples @ 50 Hz = 3-second window
 
-1. Isolation axe Z (vertical = rebond cheval)
-   — L'IMU est fixe sur le licol : pas de correction d'orientation nécessaire
-2. Application fenêtre Hanning (réduction aliasing)
-3. FFT → spectre de puissance (trivial pour l'ESP32-S3 sur 150 samples)
-4. Fréquence dominante f0 = argmax(PSD[1..10 Hz])
-5. Ratio énergie latérale R = E(axe X) / E(axe Z)
+1. Isolate Z axis (vertical = horse bounce)
+   — IMU is fixed on the halter: no orientation correction needed
+2. Apply Hanning window (aliasing reduction)
+3. FFT → power spectrum (trivial for ESP32-S3 on 150 samples)
+4. Dominant frequency f0 = argmax(PSD[1..10 Hz])
+5. Lateral energy ratio R = E(X axis) / E(Z axis)
 
-Classification :
-  f0 < 1.5 Hz              → "pas"
+Classification:
+  f0 < 1.5 Hz              → "pas"   (walk)
   1.5 ≤ f0 < 2.5 Hz        → "trot"
-  f0 ≥ 2.5 Hz  ET R > 0.6  → "amble"
-  f0 ≥ 2.0 Hz  ET R ≤ 0.6  → "galop"
+  f0 ≥ 2.5 Hz  AND R > 0.6 → "amble" (pace)
+  f0 ≥ 2.0 Hz  AND R ≤ 0.6 → "galop" (canter)
 
-Confiance = amplitude pic FFT / énergie totale spectre
+Confidence = FFT peak amplitude / total spectrum energy
 
-Résultat transmis par BLE au téléphone toutes les 3 secondes :
+Result transmitted via BLE to phone every 3 seconds:
   { gait: "trot", gait_conf: 0.91 }
 ```
 
-**Avantage clé :** le téléphone reste dans la poche de la cavalière.
-Pas de contrainte de fixation au pommeau.
+**Key advantage:** the phone stays in the rider's pocket.
+No mounting constraint on the saddle pommel.
 
 ---
 
-## Codes vibration
+## Vibration codes
 
-| Instruction | Pattern | Signification |
-|-------------|---------|---------------|
-| Ralentir | 300ms ON, 200ms OFF, 300ms ON | ⬇ Réduire vitesse |
-| Accélérer | 100ms×3 avec 100ms OFF | ⬆ Augmenter vitesse |
-| Changer allure | 200ms×3 avec 100ms OFF | → Changer d'allure |
-| Contrôle vétérinaire | 500ms continu | ⚑ Prochain contrôle |
-
----
-
-## PWA Coach — Fonctionnalités
-
-- **Progressive Web App** : installable sur iPad (Add to Home Screen), fonctionne offline pour la consultation
-- **Authentification** : token simple partagé (pas de compte utilisateur)
-- **Vues** :
-  - Carte live (Mapbox GL)
-  - Timeline FC × vitesse par cheval (Recharts)
-  - Log des instructions envoyées
-- **Post-course** :
-  - Replay GPS complet (données live + données buffered reconstituées)
-  - Export CSV / JSON
-  - Courbes : FC × vitesse, zones effort, V200, FC récupération aux contrôles
+| Instruction | Pattern | Meaning |
+|-------------|---------|---------|
+| Slow down | 300ms ON, 200ms OFF, 300ms ON | ⬇ Reduce speed |
+| Speed up | 100ms×3 with 100ms OFF | ⬆ Increase speed |
+| Change gait | 200ms×3 with 100ms OFF | → Change gait |
+| Vet check | 500ms continuous | ⚑ Next vet check |
 
 ---
 
-## Stack & Déploiement
+## Coach PWA — Features
+
+- **Progressive Web App**: installable on iPad (Add to Home Screen), works offline for browsing
+- **Authentication**: simple shared token (no user accounts)
+- **Views**:
+  - Live map (Mapbox GL)
+  - HR × speed timeline per horse (Recharts)
+  - Log of sent instructions
+- **Post-race**:
+  - Full GPS replay (live data + reconstructed buffered data)
+  - CSV / JSON export
+  - Curves: HR × speed, effort zones, V200, recovery HR at vet checks
+
+---
+
+## Stack & Deployment
 
 ```
 app/          React Native (Expo) — iOS + Android
-backend/      Node.js + ws + InfluxDB (VPS existant)
+backend/      Node.js + ws + InfluxDB (existing VPS)
 dashboard/    React + Vite PWA (Mapbox GL, Recharts, WebSocket)
 ```
 
@@ -308,5 +308,5 @@ cd app && npx expo start
 # Dashboard
 cd dashboard && npm run dev
 # Build PWA
-npm run build  # → dist/ à servir via nginx
+npm run build  # → dist/ to be served via nginx
 ```

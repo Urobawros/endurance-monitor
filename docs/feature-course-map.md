@@ -1,62 +1,62 @@
-# Feature : Superposition carte parcours
+# Feature: Course Map Overlay
 
-## Besoin
+## Need
 
-Le coach doit pouvoir :
-1. Importer le tracé officiel fourni par l'organisation
-2. Le superposer sur une vue satellite (Google / Mapbox)
-3. Voir la position des chevaux relative au tracé
-4. Détecter immédiatement une erreur d'orientation (mauvais chemin, demi-tour raté)
-
----
-
-## Formats fournis par les organisations
-
-| Format | Fréquence | Traitement |
-|--------|-----------|------------|
-| **GPX** | Très courant | Parse → GeoJSON → Mapbox layer ✅ facile |
-| **KML / KMZ** | Courant | Parse → GeoJSON → Mapbox layer ✅ facile |
-| **GeoJSON** | De plus en plus | Mapbox layer direct ✅ trivial |
-| **PDF / image scannée** | Anciennes épreuves | Géoréférencement manuel ⚠️ complexe |
-| **Image PNG/JPG** | Parfois | Géoréférencement par calage de coins ⚠️ |
+The coach must be able to:
+1. Import the official route provided by the organisation
+2. Overlay it on a satellite view (Google / Mapbox)
+3. See the horses' positions relative to the route
+4. Immediately detect an orientation error (wrong path, missed turn)
 
 ---
 
-## Architecture de la fonctionnalité
+## Formats provided by organisations
+
+| Format | Frequency | Processing |
+|--------|-----------|-----------|
+| **GPX** | Very common | Parse → GeoJSON → Mapbox layer ✅ easy |
+| **KML / KMZ** | Common | Parse → GeoJSON → Mapbox layer ✅ easy |
+| **GeoJSON** | Increasingly common | Mapbox layer direct ✅ trivial |
+| **PDF / scanned image** | Older events | Manual georeferencing ⚠️ complex |
+| **PNG/JPG image** | Sometimes | Georeferencing by corner alignment ⚠️ |
+
+---
+
+## Feature architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  PWA Coach — Vue carte                                  │
+│  Coach PWA — Map view                                   │
 │                                                         │
-│  [📂 Importer parcours]  [🛰 Satellite] [🗺 Terrain]   │
+│  [📂 Import route]  [🛰 Satellite] [🗺 Terrain]         │
 │                                                         │
 │  ┌───────────────────────────────────────────────────┐  │
-│  │  Fond : Mapbox Satellite Streets                  │  │
+│  │  Basemap: Mapbox Satellite Streets                │  │
 │  │                                                   │  │
-│  │  Layer 1 : Tracé officiel (GPX/KML)               │  │
-│  │    ── ligne bleue épaisse + waypoints ──          │  │
+│  │  Layer 1: Official route (GPX/KML)                │  │
+│  │    ── thick blue line + waypoints ──              │  │
 │  │                                                   │  │
-│  │  Layer 2 : Positions chevaux (live)               │  │
-│  │    🟢 Aramis  ●──── tracé GPS parcouru            │  │
+│  │  Layer 2: Horse positions (live)                  │  │
+│  │    🟢 Aramis  ●──── GPS track covered             │  │
 │  │    🟡 Kahina  ● (offline)                         │  │
 │  │                                                   │  │
-│  │  Layer 3 : Alertes déviation                      │  │
-│  │    🔴 Zone rouge si cheval > Nm du tracé          │  │
+│  │  Layer 3: Deviation alerts                        │  │
+│  │    🔴 Red zone if horse > Nm from route           │  │
 │  └───────────────────────────────────────────────────┘  │
 │                                                         │
-│  Barre d'état :                                         │
-│  ⚠️  ARAMIS — Déviation 240m du tracé officiel         │
+│  Status bar:                                            │
+│  ⚠️  ARAMIS — Deviation 240m from official route       │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Implémentation
+## Implementation
 
-### 1. Import GPX / KML / GeoJSON
+### 1. GPX / KML / GeoJSON import
 
 ```javascript
-// Parsing GPX/KML → GeoJSON via librairie toGeoJSON
+// Parsing GPX/KML → GeoJSON via toGeoJSON library
 import { gpx, kml } from '@mapbox/togeojson';
 
 function importCourse(file) {
@@ -70,38 +70,38 @@ function importCourse(file) {
   else if (ext === 'kmz')      geojson = await parseKMZ(file); // unzip + kml
   else if (ext === 'geojson')  geojson = JSON.parse(await file.text());
 
-  // Extraire les LineStrings (tracé) et Points (waypoints / contrôles véto)
+  // Extract LineStrings (route) and Points (waypoints / vet checks)
   const route    = geojson.features.filter(f => f.geometry.type === 'LineString');
   const waypoints = geojson.features.filter(f => f.geometry.type === 'Point');
 
   addRouteLayer(route);
   addWaypointMarkers(waypoints);
   fitMapBounds(geojson);
-  storeCourseForDeviationCheck(route); // pour le calcul offline
+  storeCourseForDeviationCheck(route); // for offline calculation
 }
 ```
 
-### 2. Affichage Mapbox GL
+### 2. Mapbox GL display
 
 ```javascript
-// Basemap satellite
+// Satellite basemap
 map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
 
-// Tracé officiel
+// Official route
 map.addSource('official-route', { type: 'geojson', data: routeGeojson });
 map.addLayer({
   id: 'official-route-line',
   type: 'line',
   source: 'official-route',
   paint: {
-    'line-color': '#3B82F6',   // bleu
+    'line-color': '#3B82F6',   // blue
     'line-width': 3,
-    'line-dasharray': [2, 1],  // pointillé léger pour ne pas masquer le sol
+    'line-dasharray': [2, 1],  // light dash to avoid obscuring the ground
     'line-opacity': 0.85
   }
 });
 
-// Waypoints / contrôles vétérinaires
+// Waypoints / vet checks
 map.addLayer({
   id: 'waypoints',
   type: 'symbol',
@@ -115,28 +115,28 @@ map.addLayer({
 });
 ```
 
-### 3. Géoréférencement image (fallback PDF/scan)
+### 3. Image georeferencing (PDF/scan fallback)
 
-Pour les organisations qui ne fournissent qu'une image scannée :
+For organisations that only provide a scanned image:
 
 ```
-Interface de calage :
-1. Coach importe l'image (PNG/JPG/PDF→PNG)
-2. Interface en 2 étapes :
-   a. Cliquer un point de référence sur l'image (ex: départ)
-      → entrer lat/lon de ce point (depuis le livret de route)
-   b. Répéter pour 3 points non colinéaires
-3. Transformation affine → ImageSource Mapbox avec 4 coins calculés
-4. Image affichée en overlay semi-transparent (opacity 0.5)
+Alignment interface:
+1. Coach imports the image (PNG/JPG/PDF→PNG)
+2. Two-step interface:
+   a. Click a reference point on the image (e.g. start)
+      → enter lat/lon for that point (from the route booklet)
+   b. Repeat for 3 non-collinear points
+3. Affine transformation → Mapbox ImageSource with 4 calculated corners
+4. Image displayed as semi-transparent overlay (opacity 0.5)
 
 map.addSource('scanned-map', {
   type: 'image',
   url: objectURL,
   coordinates: [
-    [lon_NW, lat_NW],  // coin NW
-    [lon_NE, lat_NE],  // coin NE
-    [lon_SE, lat_SE],  // coin SE
-    [lon_SW, lat_SW]   // coin SW
+    [lon_NW, lat_NW],  // NW corner
+    [lon_NE, lat_NE],  // NE corner
+    [lon_SE, lat_SE],  // SE corner
+    [lon_SW, lat_SW]   // SW corner
   ]
 });
 map.addLayer({
@@ -147,14 +147,14 @@ map.addLayer({
 });
 ```
 
-### 4. Détection de déviation (off-course alert)
+### 4. Deviation detection (off-course alert)
 
-Calcul distance point GPS cheval → segment le plus proche du tracé officiel.
+Calculates the distance from the horse's GPS point to the nearest segment of the official route.
 
 ```javascript
 import * as turf from '@turf/turf';
 
-// Pré-calculer la LineString du parcours (une fois au chargement)
+// Pre-compute the route LineString (once on load)
 let officialRoute; // GeoJSON LineString
 
 function checkDeviation(horse) {
@@ -162,74 +162,74 @@ function checkDeviation(horse) {
   
   const horsePoint = turf.point([horse.lon, horse.lat]);
   const snapped = turf.nearestPointOnLine(officialRoute, horsePoint, { units: 'meters' });
-  const distance = snapped.properties.dist; // mètres
+  const distance = snapped.properties.dist; // metres
   
-  if (distance > DEVIATION_THRESHOLD_M) { // ex: 150m
+  if (distance > DEVIATION_THRESHOLD_M) { // e.g. 150m
     triggerAlert(horse, distance);
-    // Flash rouge sur le marqueur carte
-    // Afficher bannière : "⚠️ ARAMIS — Déviation 240m"
-    // Optionnel : envoyer instruction push à la cavalière
+    // Flash red on the map marker
+    // Show banner: "⚠️ ARAMIS — Deviation 240m"
+    // Optional: auto-send push instruction to rider if deviation > 200m
   }
   
   return { distance, snappedPoint: snapped };
 }
 
-// Appelé à chaque nouveau point reçu par WebSocket
+// Called on every new point received via WebSocket
 ws.on('update', (data) => {
   updateHorseMarker(data);
   checkDeviation(data);
 });
 ```
 
-**Seuil recommandé :**
-- < 50m : dans le parcours (GPS + track width)
-- 50–150m : tolérance (GPS drift, végétation)
-- > 150m : alerte déviation
-- > 500m : alerte critique (mauvaise direction confirmée)
+**Recommended thresholds:**
+- < 50m: on route (GPS + track width)
+- 50–150m: tolerance (GPS drift, vegetation)
+- > 150m: deviation alert
+- > 500m: critical alert (confirmed wrong direction)
 
 ---
 
-## Stockage parcours côté backend
+## Course storage on the backend
 
-Le tracé est uploadé une fois par course et mis en cache :
+The route is uploaded once per race and cached:
 
 ```
 POST /races/:race_id/course
   Content-Type: multipart/form-data
-  Body: fichier GPX/KML/GeoJSON
+  Body: GPX/KML/GeoJSON file
 
-Backend :
-  → Parse et convertit en GeoJSON normalisé
-  → Stocke dans courses/{race_id}.geojson
-  → Sert via GET /races/:race_id/course
+Backend:
+  → Parses and converts to normalised GeoJSON
+  → Stores in courses/{race_id}.geojson
+  → Served via GET /races/:race_id/course
 
-PWA coach :
-  → Charge automatiquement le tracé au chargement de la course
+Coach PWA:
+  → Automatically loads the route when the race is opened
 ```
 
 ---
 
-## UX Coach
+## Coach UX
 
-**Toolbar carte :**
+**Map toolbar:**
 ```
-[📂 Parcours]  [🛰 Satellite / 🗺 Terrain]  [👁 Tracé ON/OFF]  [📐 Distance]
+[📂 Route]  [🛰 Satellite / 🗺 Terrain]  [👁 Route ON/OFF]  [📐 Distance]
 ```
 
-**Panneau cheval (augmenté) :**
+**Horse panel (enhanced):**
 ```
 Aramis   🟢 LIVE
 ❤️  142 bpm   ⚡ 18.4 km/h   🐴 Trot
-📍 Sur le tracé (+23m)                ← vert
+📍 On route (+23m)                ← green
 ```
 
 ```
 Kahina   🟢 LIVE
-❤️  138 bpm   ⚡ 19.1 km/h   🐴 Amble
-📍 ⚠️ Déviation 247m du tracé         ← orange/rouge
+❤️  138 bpm   ⚡ 19.1 km/h   🐴 Pace
+📍 ⚠️ Deviation 247m from route   ← orange/red
 ```
 
-**Alerte déviation :**
-- Bannière rouge en haut de l'écran
-- Bouton rapide : [📣 Envoyer instruction "Retourne sur le tracé"]
-- Option : vibration automatique sur le téléphone cavalière si déviation > 200m
+**Deviation alert:**
+- Red banner at the top of the screen
+- Quick button: [📣 Send instruction "Return to route"]
+- Option: automatic vibration on rider's phone if deviation > 200m
