@@ -14,16 +14,19 @@
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         CHEVAL (×1 à 3)                                 │
 │   Polar H10 ──── BLE HRM Profile ────►                                 │
+│   ESP32-S3 + IMU (licol) ── BLE Custom ──►                             │
+│     • FFT → allure (pas/trot/amble/galop)                              │
+│     • Symétrie → boiterie (grade AAEP)                                 │
 └────────────────────────────────────────────────┬────────────────────────┘
-                                                 │ BLE
+                                                 │ BLE ×2
                                                  ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    SMARTPHONE CAVALIÈRE                                  │
-│                    (fixé sur guidon / pommeau)                          │
+│                    (dans la poche — pas de fixation requise)            │
 │                                                                         │
 │   ┌──────────────────────────────────────────────────────────────────┐  │
 │   │  Collecte (toujours actif)                                       │  │
-│   │  BLE → FC │ GPS → position+vitesse │ Accéléro → allure (FFT)    │  │
+│   │  BLE → FC (Polar) + allure/boiterie (ESP32) │ GPS → pos+vitesse │  │
 │   │                        │                                         │  │
 │   │                        ▼                                         │  │
 │   │            ┌─────────────────────┐                               │  │
@@ -44,7 +47,8 @@
 │   │           buffer                                                 │  │
 │   └──────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
-│   ◄── Instruction coach (push notification → vibration + affichage 3s)  │
+│   ◄── Instruction coach (push notification → vibration)                 │
+│       Cavalière sort le téléphone pour lire le détail si besoin         │
 └─────────────────────────────────────────────┬───────────────────────────┘
                                               │ 4G (quand dispo)
                                               │ Live stream + batch flush
@@ -227,17 +231,21 @@ ws.on('message', (raw) => {
 
 ---
 
-## Algorithme détection d'allure
+## Algorithme détection d'allure (ESP32)
+
+Exécuté **sur l'ESP32 du licol** (IMU ICM-42688-P). Le mouvement de la tête du cheval
+est un signal plus propre et plus fiable que le pommeau de selle — c'est le même
+principe utilisé par les systèmes professionnels (Equimetre, Lameness Locator).
 
 ```
 Buffer : 150 échantillons accéléro @ 50 Hz = fenêtre 3 secondes
 
-1. Correction orientation via quaternion gyroscope (téléphone peut bouger)
-2. Isolation axe Z (vertical = rebond cheval)
-3. Application fenêtre Hanning (réduction aliasing)
-4. FFT → spectre de puissance
-5. Fréquence dominante f0 = argmax(PSD[1..10 Hz])
-6. Ratio énergie latérale R = E(axe X) / E(axe Z)
+1. Isolation axe Z (vertical = rebond cheval)
+   — L'IMU est fixe sur le licol : pas de correction d'orientation nécessaire
+2. Application fenêtre Hanning (réduction aliasing)
+3. FFT → spectre de puissance (trivial pour l'ESP32-S3 sur 150 samples)
+4. Fréquence dominante f0 = argmax(PSD[1..10 Hz])
+5. Ratio énergie latérale R = E(axe X) / E(axe Z)
 
 Classification :
   f0 < 1.5 Hz              → "pas"
@@ -246,7 +254,13 @@ Classification :
   f0 ≥ 2.0 Hz  ET R ≤ 0.6  → "galop"
 
 Confiance = amplitude pic FFT / énergie totale spectre
+
+Résultat transmis par BLE au téléphone toutes les 3 secondes :
+  { gait: "trot", gait_conf: 0.91 }
 ```
+
+**Avantage clé :** le téléphone reste dans la poche de la cavalière.
+Pas de contrainte de fixation au pommeau.
 
 ---
 

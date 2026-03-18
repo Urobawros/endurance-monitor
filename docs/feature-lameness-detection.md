@@ -50,18 +50,22 @@ Le bassin/croupe descend moins du côté douloureux.
 
 ## Architecture hardware
 
+Le capteur tête est le **même boîtier** que celui utilisé pour la détection d'allure.
+Un seul ESP32 + IMU sur le licol fait les deux : allure (FFT) + boiterie (symétrie).
+
 ```
 ┌─────────────────────────────────┐
 │  Capteur tête (licol / noseband)│
-│  ESP32-S3 mini                  │  → détection antérieure
-│  ICM-42688-P (IMU 6 axes)       │
+│  ESP32-S3 mini                  │  → allure (FFT @ 50Hz)
+│  ICM-42688-P (IMU 6 axes)       │  → boiterie antérieure (symétrie @ 200Hz)
 │  LiPo 200mAh (~6h autonomie)    │
 │  BLE → smartphone cavalière     │
+│  (dans la poche)                │
 └─────────────────────────────────┘
 
 ┌─────────────────────────────────┐
 │  Capteur croupe (tapis de selle)│
-│  ESP32-S3 mini                  │  → détection postérieure (optionnel)
+│  ESP32-S3 mini                  │  → détection postérieure (optionnel, Phase 3)
 │  ICM-42688-P                    │
 │  BLE → smartphone cavalière     │
 └─────────────────────────────────┘
