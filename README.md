@@ -5,7 +5,7 @@ Système de monitoring temps réel pour chevaux d'endurance — coaching à dist
 ## Concept
 
 Monitorer 1 à 3 chevaux engagés en course d'endurance avec :
-- **Fréquence cardiaque** en temps réel (Polar H10 via BLE)
+- **Fréquence cardiaque** en temps réel (Polar Equine Heart Rate Monitor for Riding via BLE)
 - **Allure + boiterie** détectées via ESP32-S3 + IMU sur le licol (FFT — pas / trot / amble / galop + score symétrie AAEP 0-5)
 - **Position GPS** + **vitesse** (GPS natif téléphone)
 - **Instructions coach → cavalière** (vibration + notification)
@@ -22,7 +22,7 @@ Le téléphone ne fait que : collecter les données BLE, enregistrer le GPS, buf
 ## Architecture
 
 ```
-Polar H10 ──BLE──► Smartphone cavalière ──SQLite──► Sync Manager ──4G (quand dispo)──► Backend WebSocket
+Polar Equine ─BLE─► Smartphone cavalière ──SQLite──► Sync Manager ──4G (quand dispo)──► Backend WebSocket
                     (dans la poche)       (buffer offline)                              • InfluxDB
 ESP32-S3 ──BLE──►  • FC (Polar)                                                       • PWA Coach
  (licol)            • Allure + Boiterie (ESP32 IMU)    ◄── Instructions push
@@ -38,12 +38,12 @@ ESP32-S3 ──BLE──►  • FC (Polar)                                     
 
 | Composant | Rôle | Prix |
 |-----------|------|------|
-| **Polar H10** + sangle adaptée | Fréquence cardiaque BLE | ~90€ |
+| **Polar Equine HR Monitor for Riding** | FC BLE — sangle conçue pour thorax cheval | ~200-300€ |
 | **ESP32-S3 mini + ICM-42688-P + LiPo 200mAh** | Allure (FFT) + boiterie (symétrie) — fixé sur le licol | ~30€ |
 | **Smartphone cavalière** (existant) | Relais : GPS + BLE + buffer SQLite + sync 4G | — |
 | **Boîtier 3D** (imprimé K2 Pro) + velcro/clip | Protection + fixation licol | ~2€ |
 
-**Coût total par cheval : ~120€** — **3 chevaux : ~360€**
+**Coût total par cheval : ~230-330€** — **3 chevaux : ~700-1000€**
 
 ## Stack
 
@@ -51,7 +51,7 @@ ESP32-S3 ──BLE──►  • FC (Polar)                                     
 |--------|-------------|
 | Firmware ESP32 | ESP-IDF / Arduino — FFT allure + symétrie boiterie + BLE broadcast |
 | App cavalière | React Native (Expo) — iOS + Android |
-| BLE | react-native-ble-plx (Polar HRM Profile + ESP32 custom service) |
+| BLE | react-native-ble-plx (Polar Equine HRM Profile + ESP32 custom service) |
 | GPS | expo-location |
 | Buffer offline | expo-sqlite |
 | Transport | WebSocket (ws) |
@@ -102,7 +102,7 @@ L'ESP32 transmet le résultat (allure + confiance) par BLE au téléphone. Pas d
 
 ### MVP (3 semaines)
 - [ ] Firmware ESP32 : lecture IMU @ 200Hz + FFT allure @ 50Hz + broadcast BLE (allure + raw accel)
-- [ ] App : BLE Polar H10 + BLE ESP32 + GPS + SQLite buffer + WebSocket sync
+- [ ] App : BLE Polar Equine + BLE ESP32 + GPS + SQLite buffer + WebSocket sync
 - [ ] Backend : WebSocket ingest (live + batch) + InfluxDB
 - [ ] PWA coach : carte satellite live + FC/vitesse/allure + statut online/offline + boutons instructions
 - [ ] Import GPX/KML parcours + overlay carte + détection déviation (alerte > 150m)

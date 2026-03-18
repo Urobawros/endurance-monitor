@@ -13,7 +13,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         CHEVAL (×1 à 3)                                 │
-│   Polar H10 ──── BLE HRM Profile ────►                                 │
+│   Polar Equine ── BLE HRM Profile ────►                                 │
 │   ESP32-S3 + IMU (licol) ── BLE Custom ──►                             │
 │     • FFT → allure (pas/trot/amble/galop)                              │
 │     • Symétrie → boiterie (grade AAEP)                                 │
@@ -26,7 +26,7 @@
 │                                                                         │
 │   ┌──────────────────────────────────────────────────────────────────┐  │
 │   │  Collecte (toujours actif)                                       │  │
-│   │  BLE → FC (Polar) + allure/boiterie (ESP32) │ GPS → pos+vitesse │  │
+│   │  BLE → FC (Polar Equine) + allure/boiterie (ESP32) │ GPS → pos+vit │  │
 │   │                        │                                         │  │
 │   │                        ▼                                         │  │
 │   │            ┌─────────────────────┐                               │  │

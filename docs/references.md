@@ -18,7 +18,8 @@
 
 ## Matériel de référence
 
-- **Polar H10** : émetteur thoracique, BLE + ANT+, 1000 Hz ECG, waterproof IP68
+- **Polar Equine Heart Rate Monitor for Riding** : capteur FC conçu pour le cheval, sangle thoracique adaptée morphologie équine, BLE standard (HRM Profile), compatible app custom. [polar.com/fr/horse-heart-rate-sensors](https://www.polar.com/fr/horse-heart-rate-sensors)
+- **Polar H10** (humain) : émetteur thoracique, BLE + ANT+, 1000 Hz ECG, waterproof IP68 — utilisable sur cheval avec sangle rallongée mais non idéal
 - **Biothermo ND** (MSD Animal Health) : puce d'identification avec capteur thermique percutané
 - **FreeStyle Libre 2** (Abbott) : capteur CGM glucose interstitiel, pose au cou (Robert 2023)
 - **Arioneo Equimetre 2.0** : GPS + FC + allure, 4G, dashboard coach (nov. 2024)
